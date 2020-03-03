@@ -35,7 +35,12 @@
       <div class="wrapper">
         <h2>Topics</h2>
         <div class="container">
-          <div class="card" v-for="(item, index) in topics" :key="index">
+          <div
+            class="card"
+            v-for="(item, index) in topics"
+            :key="index"
+            @click="navigate(item.name)"
+          >
             <div class="topic-icon">
               <clock-icon size="2x" class="custom-class"></clock-icon>
             </div>
@@ -74,17 +79,6 @@ export default {
   methods: {
     loadData: function() {
       axios
-        .get("/api/articles")
-        .then(res => {
-          if (res.status == 200) {
-            this.articles = res.data;
-          }
-        })
-        .catch(err => {
-          console.log(err);
-        });
-
-      axios
         .get("/api/topics")
         .then(res => {
           if (res.status == 200) {
@@ -95,6 +89,9 @@ export default {
         .catch(err => {
           console.log(err);
         });
+    },
+    navigate: function(topic) {
+      window.location.replace(`/app/${topic.toLowerCase()}/articles`);
     }
   },
   mounted() {

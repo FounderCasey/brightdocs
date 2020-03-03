@@ -13,4 +13,11 @@ class TopicController extends Controller
 
         return response()->json($topics);
     }
+
+    public function create(Request $request) {
+        $topic = new Topic;
+        $topic->name = $request->get('name');
+        $topic->count = $request->get('count');
+        $topic->save();
+    }
 }

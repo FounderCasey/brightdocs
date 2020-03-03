@@ -6,7 +6,9 @@
 
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <link rel="shortcut icon" href="#" />
+
 
     <title>{{ config('app.name', 'Laravel') }}</title>
     <!-- Fonts -->
@@ -47,6 +49,10 @@
 
         .ProseMirror:focus {
             outline: none;
+        }
+
+        .pad-top {
+            padding-top: 25px;
         }
     </style>
 </head>

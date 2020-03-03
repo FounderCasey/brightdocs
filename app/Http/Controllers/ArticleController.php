@@ -26,6 +26,7 @@ class ArticleController extends Controller
         if (!in_array($request->get('topic'), $topics)) {
             $topic = new Topic;
             $topic->name = $request->get('topic');
+            $topic->count = 0;
             $topic->save();
 
             DB::table('topics')->where('name', $request->get('topic'))->update([
@@ -36,6 +37,13 @@ class ArticleController extends Controller
              'count' => DB::raw('count+1')
             ]);
         }
+    }
+
+    public function update(Request $request) {
+        $article = Article::find($request->get('id'));
+
+        $article->content = $request->get("content");
+        $article->save();
     }
 
     public function get(Request $request)

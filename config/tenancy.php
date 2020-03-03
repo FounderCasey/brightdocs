@@ -93,7 +93,7 @@ return [
     ],
     'home_url' => '/app',
     'queue_database_creation' => false,
-    'migrate_after_creation' => false, // run migrations after creating a tenant
+    'migrate_after_creation' => true, // run migrations after creating a tenant
     'migration_parameters' => [
         // '--force' => true, // force database migrations
     ],

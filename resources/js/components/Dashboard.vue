@@ -4,37 +4,41 @@
       <h1>Company</h1>
       <div class="column" id="topics">
         <div class="between row">
-          <h2>Topics</h2>
-          <plus-circle-icon size="1.7x" class="add-button" @click="selected = !selected"></plus-circle-icon>
+          <div class="row center">
+            <arrow-left-icon
+              size="1.7x"
+              class="add-button back-button"
+              v-if="topicSelected"
+              @click="topicSelected = false"
+            ></arrow-left-icon>
+            <h2>{{topicSelected || "Topics"}}</h2>
+          </div>
+          <plus-circle-icon size="1.7x" class="add-button" @click="showTopicOrArticle"></plus-circle-icon>
         </div>
-        <div class="row between wrap">
-          <div class="card" @click="selected = 1">
+        <div v-if="createNewTopic" class="row between center" id="topic-input">
+          <input type="text" v-model="newTopic" placeholder="Name your new topic" />
+          <plus-circle-icon size="1.7x" class="add-button" @click="createTopic"></plus-circle-icon>
+        </div>
+        <div class="row between wrap" v-if="!topicSelected">
+          <div
+            class="card"
+            @click="topicSelected = item.name; filterArticles(item.name)"
+            v-for="(item, index) in topics"
+            :key="index"
+          >
             <clock-icon size="1.75x" class="custom-class"></clock-icon>
-            <h3>Quickstart</h3>
+            <h3>{{item.name}}</h3>
           </div>
-          <div class="card">
-            <clock-icon size="1.75x" class="custom-class"></clock-icon>
-            <h3>Quickstart</h3>
-          </div>
-          <div class="card">
-            <clock-icon size="1.75x" class="custom-class"></clock-icon>
-            <h3>Quickstart</h3>
-          </div>
-          <div class="card">
-            <clock-icon size="1.75x" class="custom-class"></clock-icon>
-            <h3>Quickstart</h3>
-          </div>
-          <div class="card">
-            <clock-icon size="1.75x" class="custom-class"></clock-icon>
-            <h3>Quickstart</h3>
-          </div>
-          <div class="card">
-            <clock-icon size="1.75x" class="custom-class"></clock-icon>
-            <h3>Quickstart</h3>
-          </div>
-          <div class="card">
-            <clock-icon size="1.75x" class="custom-class"></clock-icon>
-            <h3>Quickstart</h3>
+        </div>
+        <div class="articles" v-if="topicSelected">
+          <div
+            class="article-card"
+            v-for="(item, index) in filteredArticles"
+            :key="index"
+            @click="selectArticle(index); editing = true"
+          >
+            <h3>{{item.title}}</h3>
+            <p>{{item.updated_at | moment("from", true)}}</p>
           </div>
         </div>
       </div>
@@ -163,24 +167,40 @@
             </div>
             <div class="row center">
               <p class="warning">There are unsaved changes</p>
-              <button id="save" @click="add = !add">Save</button>
+              <button id="save" @click="add = !add" v-if="!editing">Create</button>
+              <button id="save" @click="updateArticle" v-if="editing">Save</button>
             </div>
           </div>
         </editor-menu-bar>
         <editor-content class="editor__content" :editor="editor" />
       </div>
       <div id="modal" v-if="add">
-        <h2>Add an article</h2>
-        <input type="text" name="title" id="modal-title" v-model="title" />
-        <input type="text" name="topic" id="modal-topic" v-model="topic" />
-        <button @click="createArticle">Add</button>
+        <div class="background"></div>
+        <input type="text" name="title" id="modal-title" v-model="title" placeholder="Title" />
+        <select name="topic-drop" id="topic-drop" v-model="topic">
+          <option disabled value>{{ topicSelected || 'Select a topic'}}</option>
+          <option v-for="(item, index) in topics" :key="index">{{item.name}}</option>
+        </select>
+        <div class="row between button-wrapper">
+          <div class="save row center" @click="createArticle">
+            <p>Add</p>
+          </div>
+          <div class="cancel row center" @click="add = false">
+            <x-icon size="1.7x" class="custom-class"></x-icon>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { PlusCircleIcon, ClockIcon } from "vue-feather-icons";
+import {
+  PlusCircleIcon,
+  ClockIcon,
+  ArrowLeftIcon,
+  XIcon
+} from "vue-feather-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import { Editor, EditorContent, EditorMenuBar } from "tiptap";
 import {
@@ -208,10 +228,18 @@ export default {
   name: "dashboard",
   data() {
     return {
+      topics: [],
+      articles: [],
+      filteredArticles: [],
+      topicSelected: false,
       selected: false,
+      editedArticle: {},
+      editing: false,
       add: false,
       title: "",
       topic: "",
+      newTopic: "",
+      createNewTopic: false,
       articleHTML: "",
       dropdown: "Header",
       editor: new Editor({
@@ -247,9 +275,20 @@ export default {
     EditorMenuBar,
     PlusCircleIcon,
     ClockIcon,
+    ArrowLeftIcon,
+    XIcon,
     "font-awesome-icon": FontAwesomeIcon
   },
   methods: {
+    showTopicOrArticle: function() {
+      if (this.topicSelected) {
+        this.selected = !this.selected;
+        console.log("Show editor");
+      } else {
+        this.createNewTopic = !this.createNewTopic;
+        console.log("show topic input");
+      }
+    },
     showImagePrompt(command) {
       const src = prompt("Enter the url of your image here");
       if (src !== null) {
@@ -257,6 +296,10 @@ export default {
       }
     },
     createArticle: function() {
+      if (this.topic == "") {
+        this.topic = this.topicSelected;
+      }
+
       axios
         .post("/create", {
           title: this.title,
@@ -264,16 +307,87 @@ export default {
           topic: this.topic
         })
         .then(function(response) {
-          console.log(response);
           alert("Created!");
+        })
+        .catch(function(error) {
+          console.log(error);
+        });
+    },
+    createTopic: function() {
+      axios
+        .post("/createTopic", {
+          name: this.newTopic,
+          count: 0
+        })
+        .then(function(response) {
+          alert("Created!");
+        })
+        .catch(function(error) {
+          console.log(error);
+        });
+    },
+    getData: function() {
+      axios
+        .get(`/api/articles`)
+        .then(res => {
+          if (res.status == 200) {
+            this.articles = res.data;
+          }
+        })
+        .catch(err => {
+          console.log(err);
+        });
+
+      axios
+        .get(`/api/topics`)
+        .then(res => {
+          if (res.status == 200) {
+            this.topics = res.data;
+          }
+        })
+        .catch(err => {
+          console.log(err);
+        });
+    },
+    filterArticles: function(topic) {
+      this.filteredArticles = [];
+      this.articles.forEach(article => {
+        if (article.topic == topic) {
+          this.filteredArticles.push(article);
+        }
+      });
+    },
+    selectArticle: function(id) {
+      console.log("Index: " + id);
+
+      this.selected = true;
+
+      this.editedArticle = this.filteredArticles[id];
+
+      // Clear the editor before each selection
+      this.editor.clearContent(true);
+      // Set content, in our case an html string
+      this.editor.setContent(this.editedArticle.content);
+      this.editor.focus();
+    },
+    updateArticle: function() {
+      axios
+        .post("/updateArticle", {
+          id: this.editedArticle.id,
+          content: this.articleHTML
+        })
+        .then(function(response) {
+          alert("Updated!");
         })
         .catch(function(error) {
           console.log(error);
         });
     }
   },
+  mounted() {
+    this.getData();
+  },
   beforeDestroy() {
-    // Always destroy your editor instance when it's no longer needed
     this.editor.destroy();
   }
 };
@@ -287,12 +401,35 @@ export default {
 #dashboard {
   height: 100vh;
   color: #58687c;
+  overflow: hidden;
 
   #sidebar {
     width: 500px;
     height: 100%;
     padding: 0 25px;
     background: #fde74c;
+
+    #topic-input {
+      position: relative;
+
+      input[type="text"] {
+        width: 100%;
+        height: 50px;
+
+        font-size: 1.4rem;
+        background: #eaeef2;
+        border-radius: 5px;
+        border: 1px solid #b8c0c9;
+        text-indent: 5px;
+      }
+
+      .add-button {
+        position: absolute;
+        top: 50%;
+        right: 0%;
+        transform: translate(-50%, -50%);
+      }
+    }
 
     h1 {
       margin: 0;
@@ -326,6 +463,47 @@ export default {
       }
     }
 
+    .articles {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: scroll;
+      height: 76vh;
+
+      .article-card {
+        width: 95%;
+        min-height: 85px;
+        border: solid #fafcff;
+        background: #fafcff;
+        border-radius: 5px;
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        margin: 10px 0px;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+
+        &:hover {
+          border: solid #58687c;
+          cursor: pointer;
+        }
+
+        h3,
+        p {
+          margin: 0;
+          padding-left: 25px;
+        }
+
+        p {
+          color: #b8c0c9;
+          font-weight: 100;
+          padding-top: 3px;
+          font-size: 0.9rem;
+        }
+      }
+    }
+
     #topics {
       width: 410px;
       margin: 25px auto 0;
@@ -335,6 +513,10 @@ export default {
           color: #fafcff;
           cursor: pointer;
         }
+      }
+
+      .back-button {
+        margin-right: 10px;
       }
     }
   }
@@ -426,22 +608,95 @@ export default {
   left: 50%;
   transform: translate(-50%, -50%);
 
+  width: 500px;
   background: #fff;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  padding: 50px;
+  box-shadow: 0px 4px 305px rgba(0, 0, 0, 0.45);
+  padding: 140px 40px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-direction: column;
 
-  button {
-    margin-top: 25px;
+  .background {
+    background: #fde74c;
+    height: 110px;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-image: url("/css/images/Background.png");
+    background-position: center;
+    background-size: 120%;
+  }
+
+  input {
+    -ms-box-sizing: content-box;
+    -moz-box-sizing: content-box;
+    -webkit-box-sizing: content-box;
+    box-sizing: content-box;
+  }
+
+  input[type="text"] {
+    width: 450px;
+    height: 50px;
+
+    font-size: 1.4rem;
+    background: #eaeef2;
+    border-radius: 5px;
+    border: 1px solid #b8c0c9;
+    margin-bottom: 15px;
+    text-indent: 5px;
+  }
+
+  select {
+    width: 454px;
+    height: 54px;
+
+    font-size: 1.4rem;
+    background: #eaeef2;
+    border-radius: 5px;
+    border: 1px solid #b8c0c9;
+    margin-bottom: 15px;
+  }
+
+  .button-wrapper {
+    width: 50%;
+  }
+
+  .save {
     width: 100%;
     background: #fde74c;
-    color: #58687c;
-    padding: 5px 0;
+    padding: 15px 25px;
     border: none;
     font-size: 1.4rem;
+    border-radius: 5px;
+    margin-right: 25px;
+    color: #58687c !important;
+
+    p {
+      margin: 0;
+    }
+
+    &:hover {
+      cursor: pointer;
+    }
+  }
+
+  .cancel {
+    background-color: #fd4c4c;
+    color: #58687c !important;
+    border: none;
+    padding: 15px;
+    border-radius: 5px;
+
+    &:hover {
+      cursor: pointer;
+    }
+
+    option {
+      color: #58687c !important;
+    }
   }
 }
 

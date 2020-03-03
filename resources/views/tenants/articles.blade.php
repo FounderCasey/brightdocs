@@ -1,5 +1,5 @@
 @extends('layouts.tenant')
 
 @section('content')
-  <articles></articles>
+<articles topic="{{$topic}}"></articles>
 @endsection

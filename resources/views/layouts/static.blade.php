@@ -4,8 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- CSRF Token -->
+    <!-- CSRF Token --> 
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <link rel="icon" href="{{ URL::asset('/favicon.png') }}" type="image/x-icon"/>
 
     <title>{{ config('app.name', 'Laravel') }}</title>
     <!-- Fonts -->
@@ -15,7 +17,7 @@
     <style>
         body {
             font-family: 'Roboto', sans-serif;
-            margin: 0;
+            margin: 0 auto;
         }
 
         .row {
@@ -33,6 +35,17 @@
         .between {
             justify-content: space-between;
             align-items: center;
+        }
+
+        .vue-typer .custom.char {
+            color: #58687c;
+        }
+        .vue-typer .custom.char.selected {
+            color: #58687c;
+            background: transparent;
+        }
+        .vue-typer .custom.caret {
+            display: none;
         }
     </style>
 </head>
